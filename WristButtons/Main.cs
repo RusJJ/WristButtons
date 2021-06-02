@@ -14,9 +14,6 @@ namespace WristButtons
     [BepInPlugin(Constants.modGUID, Constants.modName, Constants.modVersion)]
     public class WristButtons : BaseUnityPlugin
     {
-        public const float cooldownTime = 0.1f;
-
-        //public static Action OnReadyForButtons = null;
         internal static GameObject canvasObject = null;
         internal static GameObject canvasObjectConfirm = null;
         internal static List<InputDevice> list = new List<InputDevice>();
@@ -58,7 +55,7 @@ namespace WristButtons
             Plane.CreatePlane();
             WristButtons.canvasObject = new GameObject();
             WristButtons.canvasObject.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-            WristButtons.canvasObject.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 200; // Sharp text
+            WristButtons.canvasObject.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 100;
             WristButtons.canvasObject.AddComponent<GraphicRaycaster>();
             WristButtons.canvasObject.transform.parent = Plane.plane.transform;
             WristButtons.__show_time = WristButton.CreateButton("__show_time", "00:00 AM");
@@ -71,21 +68,32 @@ namespace WristButtons
             Plane.CreateConfirmationPlane();
             WristButtons.canvasObjectConfirm = new GameObject();
             WristButtons.canvasObjectConfirm.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-            WristButtons.canvasObjectConfirm.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 200; // Sharp text
+            WristButtons.canvasObjectConfirm.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 100;
             WristButtons.canvasObjectConfirm.AddComponent<GraphicRaycaster>();
             WristButtons.canvasObjectConfirm.transform.parent = Plane.plane_confirmation.transform;
             WristButtons.__confirmation_title = Plane.BuildConfirmationButton("Title");
             WristButtons.__confirmation_title.DisableBox();
-            WristButtons.__confirmation_title.SetLocalPosition(new Vector3(0.006f, 0.4f, 0.0f));
+            WristButtons.__confirmation_title.SetLocalPosition(new Vector3(0.0f, 0.4f, 0.0f));
             WristButtons.__confirmation_yes = Plane.BuildConfirmationButton("Yes");
-            WristButtons.__confirmation_yes.SetLocalPosition(new Vector3(0.006f, 0.2f, 0.357f));
+            WristButtons.__confirmation_yes.SetLocalPosition(new Vector3(0.0f, 0.2f, 0.36f));
             WristButtons.__confirmation_no = Plane.BuildConfirmationButton("No");
-            WristButtons.__confirmation_no.SetLocalPosition(new Vector3(0.006f, 0.2f, -0.357f));
+            WristButtons.__confirmation_no.SetLocalPosition(new Vector3(0.0f, 0.2f, -0.36f));
 
-            //WristButtons.OnReadyForButtons?.Invoke();
             foreach(var plugin in Chainloader.PluginInfos.Values)
             {
-                AccessTools.Method(plugin.Instance.GetType(), "OnReadyForButtons")?.Invoke(plugin.Instance, null);
+                var onReadyFunc = AccessTools.Method(plugin.Instance.GetType(), "OnReadyForButtons");
+                if(onReadyFunc != null)
+                {
+                    onReadyFunc.Invoke(plugin.Instance, new object[]{});
+                }
+            }
+            foreach(var plugin in Chainloader.PluginInfos.Values)
+            {
+                var onReadyFunc = AccessTools.Method(plugin.Instance.GetType(), "OnReadyForButtonsPost");
+                if(onReadyFunc != null)
+                {
+                    onReadyFunc.Invoke(plugin.Instance, new object[]{});
+                }
             }
         }
     }
@@ -115,6 +123,14 @@ namespace WristButtons
 
             Plane.plane_confirmation.transform.position = Plane.plane.transform.position;
             Plane.plane_confirmation.transform.rotation = Plane.plane.transform.rotation;
+
+            if(!Plane.plane.activeSelf)
+            {
+                foreach(var b in WristButton.buttons)
+                {
+                    b.body.GetComponent<WristButtonCollider>().Update();
+                }
+            }
         }
     }
 }
