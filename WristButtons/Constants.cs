@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WristButtons
+﻿namespace ModConstants
 {
-    class Constants
+    class ModConstants
     {
         public const string modGUID = "net.rusjj.wristbuttons";
         public const string modName = "WristButtons";

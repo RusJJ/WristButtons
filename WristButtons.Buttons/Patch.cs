@@ -1,20 +1,20 @@
 ﻿using HarmonyLib;
 using System.Reflection;
 
-namespace HarmonyPatcher
+namespace WristButtons.Buttons
 {
     class Patch
     {
         private static bool m_bIsPatched = false;
         private static Harmony m_hMyInstance = null;
-        private static string m_szInstanceId = null;
+        private static string m_szInstanceId = "net.rusjj.wristbuttons.buttons";
         public static bool IsPatched()
         {
             return m_bIsPatched;
         }
-        internal static void Apply(string instanceId)
+
+        internal static void Apply()
         {
-            if (m_szInstanceId == null) m_szInstanceId = instanceId;
             if (m_hMyInstance == null)
             {
                 m_hMyInstance = new Harmony(m_szInstanceId);
@@ -25,6 +25,7 @@ namespace HarmonyPatcher
                 }
             }
         }
+
         internal static void Remove()
         {
             if (m_hMyInstance != null)

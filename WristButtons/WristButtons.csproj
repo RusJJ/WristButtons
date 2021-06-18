@@ -15,6 +15,9 @@
     <Reference Include="BepInEx">
       <HintPath>..\Libs\BepInEx.dll</HintPath>
     </Reference>
+    <Reference Include="Oculus.VR">
+      <HintPath>..\Libs\Oculus.VR.dll</HintPath>
+    </Reference>
     <Reference Include="PhotonRealtime">
       <HintPath>..\Libs\PhotonRealtime.dll</HintPath>
     </Reference>

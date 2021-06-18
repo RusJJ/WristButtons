@@ -16,11 +16,15 @@ namespace WristButtons.Buttons
     {
         public static WristButton __last_tagged = null;
         public static WristButton __room_code = null;
-        public static WristButton __disconnect = null;
         public static WristButton __gravity = null;
         public static WristButton __tag_target = null;
+        private static Main m_hInstance;
+        internal static void Log(string msg) => m_hInstance.Logger.LogMessage(msg);
         void Awake()
         {
+            m_hInstance = this;
+            Patch.Apply();
+
             BananaHook.Events.OnRoundStart += OnRoundStart;
             BananaHook.Events.OnPlayerTagPlayer += OnPlayerTagged;
             BananaHook.Events.OnRoomJoined += OnRoomJoined;
@@ -29,16 +33,11 @@ namespace WristButtons.Buttons
         }
         private static void OnReadyForButtons()
         {
-            __last_tagged = WristButton.CreateButton("__last_tagged", "Last Tagged:\nNo info");
+            __last_tagged = WristButton.CreateButtonAfter("__show_other", "__last_tagged", "Last Tagged:\nNo info");
             __last_tagged.DisableBox();
             __last_tagged.SmallerFont();
-            __room_code = WristButton.CreateButton("__room_code", "Room Code: Not joined");
+            __room_code = WristButton.CreateButtonAfter(__last_tagged, "__room_code", "Room Code: Not joined");
             __room_code.DisableBox();
-            __disconnect = WristButton.CreateButton("__disconnect", "Disconnect");
-            __disconnect.requireConfirmation = true;
-            __disconnect.confirmationTitle = "Are you sure you want to disconnect?";
-            __disconnect.action = DisconnectHandler;
-            __disconnect.Block();
             __gravity = WristButton.CreateButton("__gravity", "Gravity", WristButton.ButtonType.Toggleable);
             __gravity.actionToggled = OnGravityChanged;
             __tag_target = WristButton.CreateButton("__tag_target", "Tag Target:\nEmpty", WristButton.ButtonType.Switchable);
@@ -75,7 +74,12 @@ namespace WristButtons.Buttons
         }
         private static void TagTarget(WristButton b)
         {
-            if (b.ownObject == null) return;
+            if (b.ownObject == null)
+            {
+                __tag_target.ownObject = Photon.Pun.PhotonNetwork.PlayerList[0];
+                __tag_target.SetText("Tag Target:\n" + ((Player)__tag_target.ownObject).NickName);
+                __tag_target.confirmationTitle = "Are you sure you want to tag " + ((Player)__tag_target.ownObject).NickName + "?";
+            }
             PhotonView.Get(GorillaTagManager.instance.GetComponent<GorillaGameManager>()).RPC("ReportTagRPC", RpcTarget.MasterClient, new object[]{b.ownObject});
         }
         private static void OnGravityChanged(WristButton b, bool enabled)
@@ -99,7 +103,7 @@ namespace WristButtons.Buttons
         }
         private static void OnRoomJoined(object sender, BananaHook.RoomJoinedArgs e)
         {
-            __tag_target.ownObject = Photon.Pun.PhotonNetwork.LocalPlayer;
+            __tag_target.ownObject = Photon.Pun.PhotonNetwork.PlayerList[0];
             __tag_target.SetText("Tag Target:\n" + ((Player)__tag_target.ownObject).NickName);
             __tag_target.confirmationTitle = "Are you sure you want to tag " + ((Player)__tag_target.ownObject).NickName + "?";
             __room_code.SetText("Room Code: " + e.roomCode);
@@ -113,14 +117,12 @@ namespace WristButtons.Buttons
             {
                 __tag_target.Unblock();
             }
-            __disconnect.Unblock();
         }
         private static void OnRoomQuit(object sender, EventArgs e)
         {
             __room_code.SetText("Room Code: Not joined");
             __last_tagged.SetText("Last Tagged:\nNo info");
             __gravity.Unblock();
-            __disconnect.Block();
             __tag_target.ownObject = null;
             __tag_target.SetText("Tag Target:\nEmpty");
             __tag_target.Block();

@@ -13,7 +13,7 @@ namespace WristButtons
             Toggleable = 1,
             Switchable = 2,
         }
-        public const int layerForTrigger = 11;
+        public const int layerForTrigger = 18; // 11
         public const float cooldownTime = 0.15f;
         public const float buttonReleaseTime = 0.5f;
         public const float buttonsGapOffset = 0.16f;// = 0.125f;
@@ -23,14 +23,14 @@ namespace WristButtons
         public static readonly Color colorEnabled = new Color(0.0f, 0.5f, 0.0f, 1.0f);
         public static readonly Vector3 buttonSizeRegular = new Vector3(0.011f, 0.018f, 1.0f);
         public static readonly Vector3 buttonSizeSmaller = new Vector3(0.007f, 0.01f, 1.0f);
-        internal static List<WristButton> buttons = new List<WristButton>();
-        internal static Vector3 buttonTextPosOffset = new Vector3(0.006f, 0.0f, 0.0f);
+        internal static List<WristButton> buttons = null;
+        internal static Vector3 buttonTextPosOffset = new Vector3(0.007f, 0.0f, 0.0f);
 
         internal GameObject body = null;
         internal GameObject textBody = null;
         internal GameObject textGO = null;
         internal Text textObject = null;
-        //internal Text textObjectOutline = null;
+        internal Rigidbody attachedRigidbody = null;
         internal ButtonType type = ButtonType.Regular;
         internal bool isToggled = false;
         internal bool isBlocked = false;
@@ -52,7 +52,7 @@ namespace WristButtons
             newButton.myId = myId;
             newButton.type = type;
             newButton.body = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            GameObject.Destroy(newButton.body.GetComponent<Rigidbody>());
+            newButton.body.AddComponent<WristButtonInfo>().pairedButton = newButton;
             BoxCollider col = newButton.body.GetComponent<BoxCollider>();
             col.isTrigger = true;
             col.gameObject.layer = layerForTrigger;
@@ -63,15 +63,17 @@ namespace WristButtons
                 newButton.body.transform.localScale = new Vector3(0.01f, 0.023f, 0.093f);
                 newButton.myArrowButtons = new WristButton[2];
                 newButton.myArrowButtons[0] = WristButton.BuildButton("", "<", ButtonType.Regular);
-                newButton.myArrowButtons[0].body.transform.localScale = new Vector3(8.0f, 0.1f, 0.12f);//new Vector3(0.01f, 0.023f, 0.03f);
-                newButton.myArrowButtons[0].body.transform.localPosition = new Vector3(0.0f, 0.0f, 0.29f);
                 newButton.myArrowButtons[0].body.transform.parent = newButton.body.transform;
+                newButton.myArrowButtons[0].body.transform.localScale = new Vector3(0.8f, 0.9f, 0.242f);
+                newButton.myArrowButtons[0].body.transform.localPosition = new Vector3(0.0f, 0.0f, 0.62f);
+                newButton.myArrowButtons[0].body.transform.Rotate(0.0f, -90.0f, 0.0f);
                 newButton.myArrowButtons[0].ownObject = newButton;
                 newButton.myArrowButtons[0].action = OnLeftRightBtnPress;
                 newButton.myArrowButtons[1] = WristButton.BuildButton("", ">", ButtonType.Regular);
-                newButton.myArrowButtons[1].body.transform.localScale = new Vector3(8.0f, 0.1f, 0.12f);
-                newButton.myArrowButtons[1].body.transform.localPosition = new Vector3(0.0f, 0.0f, -0.29f);
                 newButton.myArrowButtons[1].body.transform.parent = newButton.body.transform;
+                newButton.myArrowButtons[1].body.transform.localScale = new Vector3(0.8f, 0.9f, 0.242f);
+                newButton.myArrowButtons[1].body.transform.localPosition = new Vector3(0.0f, 0.0f, -0.62f);
+                newButton.myArrowButtons[1].body.transform.Rotate(0.0f, -90.0f, 0.0f);
                 newButton.myArrowButtons[1].ownObject = newButton;
                 newButton.myArrowButtons[1].action = OnLeftRightBtnPress;
             }
@@ -85,7 +87,6 @@ namespace WristButtons
             newButton.textGO = new GameObject();
             newButton.textGO.transform.position = Plane.plane.transform.position;
             newButton.textGO.transform.parent = WristButtons.canvasObject.transform;
-            //Outline outline = newButton.textGO.AddComponent<Outline>();
             newButton.textObject = newButton.textGO.AddComponent<Text>();
 
             // Set Text component properties.
@@ -97,10 +98,8 @@ namespace WristButtons
             newButton.textObject.resizeTextMinSize = 0;
             newButton.textObject.transform.localScale = buttonSizeRegular;
 
-            //newButton.textObject.transform.position = newButton.body.transform.position;
             newButton.textObject.transform.rotation = Plane.plane.transform.rotation;
             newButton.textObject.transform.Rotate(0.0f, 90.0f, 0.0f);
-            //newButton.textObject.transform.parent = newButton.body.transform;
             newButton.textObject.transform.localPosition = buttonTextPosOffset;
 
             newButton.confirmationTitle = text + "?";
@@ -260,7 +259,6 @@ namespace WristButtons
                     off -= buttonsGapOffset;
                 }
                 b.body.transform.localPosition = pos;
-                //b.textGO.GetComponent<Outline>().transform.position = b.body.transform.position - Plane.plane.transform.right * buttonTextPosOffset.x;
                 b.textObject.transform.position = b.body.transform.position - Plane.plane.transform.right * buttonTextPosOffset.x;
                 if(b.type == ButtonType.Switchable)
                 {
@@ -401,7 +399,7 @@ namespace WristButtons
         }
         private void OnTriggerEnter(Collider collider)
         {
-            if (pairedButton.isBlocked || WristButtons.pressCooldown > Time.time || collider.transform != GorillaButtonClicker.toucher.transform || pairedButton.pressTime > 0.0f) return;
+            if (pairedButton.isBlocked || WristButtons.pressCooldown > Time.time || collider != WristButtons.rightHandToucher || pairedButton.pressTime > 0.0f) return;
             WristButtons.pressCooldown = Time.time + WristButton.cooldownTime;
             GorillaTagger.Instance.StartVibration(false, GorillaTagger.Instance.tapHapticStrength, GorillaTagger.Instance.tapHapticDuration);
 
@@ -455,7 +453,7 @@ namespace WristButtons
             }
 
             pairedButton.body.GetComponent<Renderer>().material.SetColor("_Color", WristButton.colorPressed);
-            if(pairedButton.requireConfirmation)
+            if (pairedButton.requireConfirmation)
             {
                 pairedButton.AskForConfirm();
             }
@@ -465,22 +463,20 @@ namespace WristButtons
             }
         }
     }
-    internal class GorillaButtonClicker
+    internal class WristObjects
     {
-        internal static GameObject toucher = null;
-        public static void CreateToucher()
+        internal static GameObject centerObject = null;
+        public static readonly Vector3 centerHeightOffset = new Vector3(0.0f, 0.03f, 0.0f);
+        public static readonly Vector3 toucherOffset = new Vector3(-0.008f, -0.09f, 0.02f);
+        public static void CreateCenterObject()
         {
-            if(toucher == null)
-            {
-                toucher = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                //GameObject.Destroy(toucher.GetComponent<MeshRenderer>());
-            }
-            toucher.transform.position = GorillaTagger.Instance.rightHandTransform.position;
-            toucher.transform.parent = GorillaTagger.Instance.rightHandTransform;
-            toucher.transform.localPosition = new Vector3(-0.008f, -0.09f, 0.02f);
-            toucher.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-            toucher.GetComponent<SphereCollider>().gameObject.layer = WristButton.layerForTrigger;
-            toucher.SetActive(false);
+            centerObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject.Destroy(centerObject.GetComponent<BoxCollider>());
+            GameObject.Destroy(centerObject.GetComponent<MeshRenderer>());
         }
+    }
+    internal class WristButtonInfo : MonoBehaviour
+    {
+        internal WristButton pairedButton;
     }
 }
